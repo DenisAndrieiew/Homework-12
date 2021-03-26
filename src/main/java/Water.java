@@ -1,64 +1,61 @@
 import java.util.concurrent.*;
 
 public class Water {
-    private static CyclicBarrier barrier = new CyclicBarrier(3,System.out::println);
-    private static Semaphore semaphore = new Semaphore(3);
+    private static CyclicBarrier barrier = new CyclicBarrier(3);
     private static final ExecutorService executor = Executors.newCachedThreadPool();
 
     public static void main(String[] args) {
-        for (int i = 0; i < 10; i++) {
-            executor.execute(new Hydrogen());
-            executor.execute(new Oxygen());
-            executor.execute(new Hydrogen());
+        Hydrogen hydrogen = new Hydrogen();
+        Oxygen oxygen = new Oxygen();
+        for (int i = 0; i < 9; i++) {
+            executor.submit(hydrogen);
+            executor.submit(oxygen);
+            executor.submit(hydrogen);
         }
-
+executor.shutdown();
     }
 public static class Hydrogen implements Runnable{
-private Semaphore semaphoreH = new Semaphore(2);
+Semaphore semaphore = new Semaphore(2);
         @Override
     public void run() {
-            try {
-                semaphoreH.acquire();
-                semaphore.acquire();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                releaseHydrogen();
             }
-
-            releaseHydrogen();
-    }
-    private void releaseHydrogen(){
-        System.out.print("H");
+    private void releaseHydrogen()  {
         try {
-            Thread.sleep(50);
+            semaphore.acquire();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-        semaphoreH.release();
+        try {
+            barrier.await();
+        } catch (BrokenBarrierException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.print("H");
         semaphore.release();
     }
 }
     public static class Oxygen implements Runnable{
-    private Semaphore semaphoreO = new Semaphore(1);
+    Semaphore semaphore = new Semaphore(1);
         @Override
         public void run() {
+            releaseOxygen();
+        }
+        private void releaseOxygen(){
             try {
-                semaphoreO.acquire();
                 semaphore.acquire();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            releaseOxygen();
-        }
-        private void releaseOxygen(){
 
-            System.out.print("O");
             try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
+                barrier.await();
+            } catch (InterruptedException | BrokenBarrierException e) {
                 e.printStackTrace();
             }
-            semaphoreO.release();
+            System.out.print("O");
             semaphore.release();
         }
     }
